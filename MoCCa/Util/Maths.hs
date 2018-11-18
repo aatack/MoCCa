@@ -19,3 +19,16 @@ roundExact n x = (integerPart, decimalPart)
             let base = 10 :: Int
                 decimal = x - (fromIntegral integerPart :: Double)
             in round (decimal * fromIntegral (base ^ n)) :: Int
+
+-- | Round the given value to n decimal places and then convert it to a string.
+roundAndFormat :: Int -> Double -> String
+roundAndFormat n x =
+    let shownJ = show j
+        nZeroes = n - (length shownJ)
+        shownDecimal = (replicate nZeroes '0') ++ shownJ
+    in (show i) ++ "." ++ shownDecimal
+    where (i, j) = roundExact n x
+
+-- | Convert the given value from radians to degrees.
+toDegrees :: Double -> Double
+toDegrees theta = theta * (180 / pi)
