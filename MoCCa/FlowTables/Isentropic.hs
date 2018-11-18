@@ -1,4 +1,12 @@
-module MoCCa.FlowTables.Isentropic where
+module MoCCa.FlowTables.Isentropic
+( machNumber
+, machAngle
+, prandtlMeyerFunction
+, generateFlowTable
+, lookupMachNumber
+, lookupMachAngle
+, lookupPrandtlMeyerFunction
+) where
 
 import qualified Data.List as List
 import qualified MoCCa.Util.Maths as Maths
