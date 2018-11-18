@@ -32,3 +32,7 @@ roundAndFormat n x =
 -- | Convert the given value from radians to degrees.
 toDegrees :: Double -> Double
 toDegrees theta = theta * (180 / pi)
+
+-- | Convert the given value from degrees to radians.
+toRadians :: Double -> Double
+toRadians theta = theta * (pi / 180)
