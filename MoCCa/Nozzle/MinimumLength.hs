@@ -13,6 +13,14 @@ data Point = Point { riemannInvariants :: (Double, Double)
                    , pointType :: PointType
                    } deriving (Show)
 
+-- | Extract the ascending Riemann invariant from the point.
+ascendingInvariant :: Point -> Double
+ascendingInvariant = fst . riemannInvariants
+
+-- | Extract the descending Riemann invariant from the point.
+descendingInvariant :: Point -> Double
+descendingInvariant = snd . riemannInvariants
+
 -- | Determine the angles of the characteristic lines coming from
 -- the given point.
 characteristicAngles :: Point -> (Double, Double)
@@ -20,6 +28,14 @@ characteristicAngles p =
     let theta = flowAngle p
         mu = machAngle p
     in (theta + mu, theta - mu)
+
+-- | Retrieve the x-coordinate of the given point.
+x :: Point -> Double
+x = fst . position
+
+-- | Retrieve the y-coordinate of the given point.
+y :: Point -> Double
+y = snd . position
 
 -- | Generate n equally spaced starting angles for characteristic
 -- lines between the two limits.
@@ -38,8 +54,8 @@ nozzleThroatAngle table exitMachNumber =
 
 -- | Create a point and populate its field, assuming that it is located
 -- at the top of the throat and its flow angle is given.
-createInitialPoint :: IFT.IsentropicFlowTable -> Double -> Point
-createInitialPoint table angle =
+createThroatPoint :: IFT.IsentropicFlowTable -> Double -> Point
+createThroatPoint table angle =
     Point { riemannInvariants = (0, 2 * angle)
           , machNumber = IFT.machNumber tableRow
           , machAngle = IFT.machAngle tableRow
@@ -52,3 +68,31 @@ createInitialPoint table angle =
         tableRow = case IFT.lookupPrandtlMeyerFunction table angle of
             Just r  -> r
             Nothing -> error "table does not contain the requested P-M value"
+
+-- | Calculate the properties of a point on the centreline which is
+-- assumed to be on the same characteristic line as the given throat point.
+createFlowPoint :: IFT.IsentropicFlowTable -> Point -> Point -> Point
+createFlowPoint table a b =
+    Point { riemannInvariants = (ascendingInvariant a, descendingInvariant b)
+          , machNumber = m
+          , machAngle = mu
+          , flowAngle = theta
+          , prandtlMeyerFunction = nu
+          , position = pointPosition a b theta mu
+          , pointType = Flow
+          }
+    where
+        tableRow = case IFT.lookupPrandtlMeyerFunction table nu of
+            Just r  -> r
+            Nothing -> error "table does not contain the requested P-M value"
+        nu = 0.5 * (ascendingInvariant a - descendingInvariant b)
+        theta = 0.5 * (descendingInvariant b - ascendingInvariant a)
+        m = IFT.machNumber tableRow
+        mu = IFT.machAngle tableRow
+        pointPosition a' b' theta' mu' =
+            let xp = ((x b') * (tan abp) - (x a') * (tan aap) + (y a') - (y b')) / (tan abp - tan aap)
+                yp = (y a') + (xp - (x a')) * (tan aap)
+            in (xp, yp)
+            where
+                aap = 0.5 * ((flowAngle a' + machAngle a') + (theta' + mu'))
+                abp = 0.5 * ((flowAngle b' - machAngle b') + (theta' - mu'))
