@@ -61,7 +61,7 @@ mirror p =
           , machNumber = machNumber p
           , machAngle = machAngle p
           , flowAngle = (-1) * flowAngle p
-          , prandtlMeyerFunction = (-1) * (prandtlMeyerFunction p)
+          , prandtlMeyerFunction = prandtlMeyerFunction p
           , position = (x p, (-1) * (y p))
           , pointType = pointType p
           }
@@ -121,8 +121,7 @@ createFlowPoint table a b =
 -- the wall.  Assume the angle of the wall is set to create uniform flow.
 createWallPoint :: IFT.IsentropicFlowTable -> Double -> Point -> Point -> Point
 createWallPoint table exitMachNumber a b =
-    Point { riemannInvariants = (ascendingInvariant a,
-                                 error "walls points have no descending invariant")
+    Point { riemannInvariants = (ascendingInvariant a, 0)
           , machNumber = machNumber a
           , machAngle = machAngle a
           , flowAngle = flowAngle a
@@ -141,3 +140,17 @@ createWallPoint table exitMachNumber a b =
             where
                 aaw = (flowAngle a' + machAngle a')
                 abw = 0.5 * (flowAngle b + flowAngle a)
+
+-- | Find the properties of all the free flow points on the next characteristic
+-- line along from the given one, and append to it the properties of the flow
+-- at the point where that characteristic line meets the wall.
+calculateNextCharacteristic :: IFT.IsentropicFlowTable -> Double
+    -> Point -> [Point] -> Point -> [Point]
+calculateNextCharacteristic table exitMachNumber pointToMirror
+    previousCharacteristicPoints previousWallPoint =
+    nextCharacteristicPoints ++ [nextWallPoint]
+    where
+        nextCharacteristicPoints = init . scanr (flip $ createFlowPoint table)
+            (mirror pointToMirror) $ previousCharacteristicPoints
+        nextWallPoint = createWallPoint table exitMachNumber
+            (last nextCharacteristicPoints) previousWallPoint
