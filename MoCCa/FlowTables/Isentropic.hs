@@ -75,19 +75,19 @@ linearInterpolateRows extract desiredValue (r0@(Row m0 mu0 nu0), r1@(Row m1 mu1 
 -- | Look up a Mach number in the given isentropic flow table, and
 -- interpolate between the two closest rows.
 lookupMachNumber :: IsentropicFlowTable -> Double -> Maybe Row
-lookupMachNumber table m = lookupValue (\r -> machNumber r > m) (machNumber) table m
+lookupMachNumber table m = lookupValue ((m <) . machNumber) (machNumber) table m
 
 -- | Look up a Mach angle in the given isentropic flow table, and
 -- interpolate between the two closest rows.
 lookupMachAngle :: IsentropicFlowTable -> Double -> Maybe Row
 lookupMachAngle table mu = lookupValue
-    (\r -> machAngle r < mu) (machAngle) table mu
+    ((mu >) . machAngle) (machAngle) table mu
 
 -- | Look up a Prandtl-Meyer angle in the given isentropic flow table, and
 -- interpolate between the two closest rows.
 lookupPrandtlMeyerFunction :: IsentropicFlowTable -> Double -> Maybe Row
 lookupPrandtlMeyerFunction table nu = lookupValue
-    (\r -> prandtlMeyerFunction r > nu) (prandtlMeyerFunction) table nu
+    ((nu <) . prandtlMeyerFunction) (prandtlMeyerFunction) table nu
 
 -- | Look up a value in the given flow table, selecting the rows between which to
 -- interpolate based on a predicate and then using the extracted values as
