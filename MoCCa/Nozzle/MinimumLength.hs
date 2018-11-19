@@ -1,9 +1,10 @@
 module MoCCa.Nozzle.MinimumLength where
 
 import qualified MoCCa.FlowTables.Isentropic as IFT
+import qualified MoCCa.Util.Maths as Maths
 
 type Coordinate = (Double, Double)
-data PointType = Throat | Flow | Centreline | Wall deriving (Show)
+data PointType = Throat | Flow | Wall deriving (Show)
 data Point = Point { riemannInvariants :: (Double, Double)
                    , machNumber :: Double
                    , machAngle :: Double
@@ -115,5 +116,28 @@ createFlowPoint table a b =
                 aap = 0.5 * ((flowAngle a' + machAngle a') + (theta' + mu'))
                 abp = 0.5 * ((flowAngle b' - machAngle b') + (theta' - mu'))
 
-t = IFT.generateFlowTable 1.4 1.0 0.01
-pointA = createThroatPoint t 0.006457718
+-- | Calculate the flow state at a point on the wall of the nozzle, given a
+-- point in free flow upstream of the new point, and the closest point along
+-- the wall.  Assume the angle of the wall is set to create uniform flow.
+createWallPoint :: IFT.IsentropicFlowTable -> Double -> Point -> Point -> Point
+createWallPoint table exitMachNumber a b =
+    Point { riemannInvariants = (ascendingInvariant a,
+                                 error "walls points have no descending invariant")
+          , machNumber = machNumber a
+          , machAngle = machAngle a
+          , flowAngle = flowAngle a
+          , prandtlMeyerFunction = prandtlMeyerFunction a
+          , position = pointPosition a b 
+          , pointType = Wall
+          }
+    where
+        pointPosition a' b' =
+            let xp = let xNumerator = (x b') * (tan abw) - (x a') * (tan aaw)
+                         yNumerator = (y a') - (y b')
+                         denominator = tan abw - tan aaw
+                     in (xNumerator + yNumerator) / denominator
+                yp = (y a') + (xp - (x a')) * (tan aaw)
+            in (xp, yp)
+            where
+                aaw = (flowAngle a' + machAngle a')
+                abw = 0.5 * (flowAngle b + flowAngle a)
