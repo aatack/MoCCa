@@ -6,6 +6,7 @@ module MoCCa.FlowTables.Isentropic
 , lookupMachNumber
 , lookupMachAngle
 , lookupPrandtlMeyerFunction
+, IsentropicFlowTable
 ) where
 
 import qualified Data.List as List
