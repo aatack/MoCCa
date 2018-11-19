@@ -52,6 +52,21 @@ nozzleThroatAngle table exitMachNumber =
         Just row -> 0.5 * IFT.prandtlMeyerFunction row
         Nothing  -> error "table does not contain the requested Mach number"
 
+-- | Find the mirrored version of the point, finding the properties of the
+-- equivalent point on the opposite side of the centreline.
+mirror :: Point -> Point
+mirror p =
+    Point { riemannInvariants = swapTuple . riemannInvariants $ p
+          , machNumber = machNumber p
+          , machAngle = machAngle p
+          , flowAngle = (-1) * flowAngle p
+          , prandtlMeyerFunction = (-1) * (prandtlMeyerFunction p)
+          , position = (x p, (-1) * (y p))
+          , pointType = pointType p
+          }
+    where
+        swapTuple (a, b) = (b, a)
+
 -- | Create a point and populate its field, assuming that it is located
 -- at the top of the throat and its flow angle is given.
 createThroatPoint :: IFT.IsentropicFlowTable -> Double -> Point
@@ -85,14 +100,20 @@ createFlowPoint table a b =
         tableRow = case IFT.lookupPrandtlMeyerFunction table nu of
             Just r  -> r
             Nothing -> error "table does not contain the requested P-M value"
-        nu = 0.5 * (ascendingInvariant a - descendingInvariant b)
+        nu = 0.5 * (ascendingInvariant a + descendingInvariant b)
         theta = 0.5 * (descendingInvariant b - ascendingInvariant a)
         m = IFT.machNumber tableRow
         mu = IFT.machAngle tableRow
         pointPosition a' b' theta' mu' =
-            let xp = ((x b') * (tan abp) - (x a') * (tan aap) + (y a') - (y b')) / (tan abp - tan aap)
+            let xp = let xNumerator = (x b') * (tan abp) - (x a') * (tan aap)
+                         yNumerator = (y a') - (y b')
+                         denominator = tan abp - tan aap
+                     in (xNumerator + yNumerator) / denominator
                 yp = (y a') + (xp - (x a')) * (tan aap)
             in (xp, yp)
             where
                 aap = 0.5 * ((flowAngle a' + machAngle a') + (theta' + mu'))
                 abp = 0.5 * ((flowAngle b' - machAngle b') + (theta' - mu'))
+
+t = IFT.generateFlowTable 1.4 1.0 0.01
+pointA = createThroatPoint t 0.006457718
