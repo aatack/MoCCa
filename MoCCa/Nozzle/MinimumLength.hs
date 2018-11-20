@@ -150,7 +150,7 @@ calculateNextCharacteristic table exitMachNumber pointToMirror
     previousCharacteristicPoints previousWallPoint =
     nextCharacteristicPoints ++ [nextWallPoint]
     where
-        nextCharacteristicPoints = init . scanr (flip $ createFlowPoint table)
+        nextCharacteristicPoints = tail $ scanl (createFlowPoint table)
             (mirror pointToMirror) $ previousCharacteristicPoints
         nextWallPoint = createWallPoint table exitMachNumber
             (last nextCharacteristicPoints) previousWallPoint
