@@ -8,3 +8,7 @@ boundPredicateSwitch predicate (x:y:zs) =
     if predicate x /= predicate y then Just (x, y)
     else boundPredicateSwitch predicate (y:zs)
 boundPredicateSwitch _ _ = Nothing
+
+-- | Map each value in a list to a sub-list and then join them together.
+flatMap :: (a -> [b]) -> [a] -> [b]
+flatMap f = foldl1 (++) . map f
