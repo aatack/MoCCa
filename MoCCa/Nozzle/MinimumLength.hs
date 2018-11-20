@@ -4,6 +4,7 @@ module MoCCa.Nozzle.MinimumLength
 , Point (..)
 , DesignParameters (..)
 , asCSVDegrees
+, pointNames
 ) where
 
 import qualified MoCCa.FlowTables.Isentropic as IFT
@@ -234,3 +235,10 @@ asCSVDegrees decimalPlaces p =
         (x, y) = position p
     in List.intercalate "," . map (Maths.roundAndFormat decimalPlaces) $
         [rPlus, rMinus, theta, nu, m, mu, thetaPlusMu, thetaMinusMu, x, y]
+
+-- | Generate point names for the given parameters.  Throad points are
+-- named with letters, while flow and wall points are named with numbers.
+pointNames :: DesignParameters -> [String]
+pointNames params =
+    let nc = numberOfCharacteristics params
+    in (take nc (map (\c -> [c]) ['a'..'z'])) ++ (map (show) [1..])
