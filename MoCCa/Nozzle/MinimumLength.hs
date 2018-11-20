@@ -1,4 +1,9 @@
-module MoCCa.Nozzle.MinimumLength where
+module MoCCa.Nozzle.MinimumLength
+( minimumLengthNozzle
+, wallPoints
+, Point (..)
+, DesignParameters (..)
+) where
 
 import qualified MoCCa.FlowTables.Isentropic as IFT
 import qualified MoCCa.Util.Maths as Maths
