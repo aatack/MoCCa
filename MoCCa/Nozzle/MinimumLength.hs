@@ -3,10 +3,12 @@ module MoCCa.Nozzle.MinimumLength
 , wallPoints
 , Point (..)
 , DesignParameters (..)
+, asCSVDegrees
 ) where
 
 import qualified MoCCa.FlowTables.Isentropic as IFT
 import qualified MoCCa.Util.Maths as Maths
+import qualified Data.List as List
 
 type Coordinate = (Double, Double)
 data PointType = Throat | Flow | Wall deriving (Show, Eq)
@@ -215,3 +217,20 @@ minimumLengthNozzle params = startingPoints ++ downstreamPoints
 -- of the nozzle.
 wallPoints :: [Point] -> [Point]
 wallPoints = filter ((== Wall) . pointType)
+
+-- | Convert the given point to a series of comma-separated values,
+-- rounding each one to the given number of decimal places, with all
+-- angles represented in degrees.
+asCSVDegrees :: Int -> Point -> String
+asCSVDegrees decimalPlaces p =
+    let (rPlus, rMinus) = riemannInvariants p
+        theta = Maths.toDegrees . flowAngle $ p
+        nu = Maths.toDegrees . prandtlMeyerFunction $ p
+        m = machNumber p
+        mu = Maths.toDegrees . machAngle $ p
+        (thetaPlusMu, thetaMinusMu) = mapTuple (Maths.toDegrees)
+            . characteristicAngles $ p
+            where mapTuple f (a, b) = (f a, f b)
+        (x, y) = position p
+    in List.intercalate "," . map (Maths.roundAndFormat decimalPlaces) $
+        [rPlus, rMinus, theta, nu, m, mu, thetaPlusMu, thetaMinusMu, x, y]
