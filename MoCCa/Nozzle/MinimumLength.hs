@@ -4,7 +4,7 @@ import qualified MoCCa.FlowTables.Isentropic as IFT
 import qualified MoCCa.Util.Maths as Maths
 
 type Coordinate = (Double, Double)
-data PointType = Throat | Flow | Wall deriving (Show)
+data PointType = Throat | Flow | Wall deriving (Show, Eq)
 data Point = Point { riemannInvariants :: (Double, Double)
                    , machNumber :: Double
                    , machAngle :: Double
@@ -37,6 +37,19 @@ x = fst . position
 -- | Retrieve the y-coordinate of the given point.
 y :: Point -> Double
 y = snd . position
+
+data DesignParameters = DesignParameters { gamma :: Double
+                                         , exitMachNumber :: Double
+                                         , tableMinimumMachNumber :: Double
+                                         , tableMachNumberStep :: Double
+                                         , thetaMin :: Double
+                                         , numberOfCharacteristics :: Int
+                                         } deriving (Show)
+
+-- | Generate an isentropic flow table using the specified parameters.
+tableFor :: DesignParameters -> IFT.IsentropicFlowTable
+tableFor params = IFT.generateFlowTable (gamma params)
+    (tableMinimumMachNumber params) (tableMachNumberStep params)
 
 -- | Generate n equally spaced starting angles for characteristic
 -- lines between the two limits.
@@ -154,3 +167,46 @@ calculateNextCharacteristic table exitMachNumber pointToMirror
             (mirror pointToMirror) $ previousCharacteristicPoints
         nextWallPoint = createWallPoint table exitMachNumber
             (last nextCharacteristicPoints) previousWallPoint
+
+-- | Calculate the flow state at a number of points along a series of characteristic
+-- lines, until there are no more points left to propagate.
+calculateCharacteristics :: IFT.IsentropicFlowTable -> Double
+    -> Point -> [Point] -> Point -> [Point] -> [Point]
+calculateCharacteristics table exitMachNumber pointToMirror
+    previousCharacteristicPoints previousWallPoint accumulatedPoints
+    | lastPoint = accumulatedPoints ++ calculateNextCharacteristic table
+        exitMachNumber pointToMirror previousCharacteristicPoints previousWallPoint
+    | otherwise =
+        let nextDescendingPoints = middle nextCharacteristicPoints
+            nextPointToMirror = head nextDescendingPoints
+            nextWallPoint = last nextCharacteristicPoints
+            nextAccumulatedPoints = accumulatedPoints ++ nextCharacteristicPoints
+        in calculateCharacteristics table exitMachNumber nextPointToMirror
+            nextDescendingPoints nextWallPoint nextAccumulatedPoints
+    where
+        lastPoint = length previousCharacteristicPoints <= 1
+        nextCharacteristicPoints = calculateNextCharacteristic table
+            exitMachNumber pointToMirror previousCharacteristicPoints
+            previousWallPoint
+        middle = init . tail
+
+-- | Calculate the flow state at all the characteristic points of a nozzle,
+-- given the desired design parameters.
+minimumLengthNozzle :: DesignParameters -> [Point]
+minimumLengthNozzle params = startingPoints ++ downstreamPoints
+    where
+        table = tableFor params
+        mExit = exitMachNumber params
+        startingPoints =
+            let thetaMin' = thetaMin params
+                thetaMax' = nozzleThroatAngle table mExit
+                startingAngles = generateStartingAngles
+                    (numberOfCharacteristics params) (thetaMin', thetaMax')
+            in map (createThroatPoint table) startingAngles
+        downstreamPoints = calculateCharacteristics table mExit
+            (head startingPoints) startingPoints (last startingPoints) []
+
+-- | From a list of points, extract only those which sit on the wall
+-- of the nozzle.
+wallPoints :: [Point] -> [Point]
+wallPoints = filter ((== Wall) . pointType)
