@@ -22,6 +22,10 @@ data Point = Point { riemannInvariants :: (Double, Double)
                    , pointType :: PointType
                    } deriving (Show)
 
+-- | Small value used for float comparison to zero.
+eps :: Double
+eps = 1e-8
+
 -- | Extract the ascending Riemann invariant from the point.
 ascendingInvariant :: Point -> Double
 ascendingInvariant = fst . riemannInvariants
@@ -232,9 +236,12 @@ asCSVDegrees decimalPlaces p =
         (thetaPlusMu, thetaMinusMu) = mapTuple (Maths.toDegrees)
             . characteristicAngles $ p
             where mapTuple f (a, b) = (f a, f b)
-        (x, y) = position p
+        (x, y) = mapTuple zeroIfSmall (position p)
     in List.intercalate "," . map (Maths.roundAndFormat decimalPlaces) $
         [rPlus, rMinus, theta, nu, m, mu, thetaPlusMu, thetaMinusMu, x, y]
+    where
+        mapTuple f (a, b) = (f a, f b)
+        zeroIfSmall x = if abs x > eps then x else 0.0
 
 -- | Generate point names for the given parameters.  Throad points are
 -- named with letters, while flow and wall points are named with numbers.
